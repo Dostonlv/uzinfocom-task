@@ -9,6 +9,7 @@ import { UserModule } from './user/user.module';
 import { ArticleModule } from './article/article.module';
 import { AuthModule } from './auth/auth.module';
 import { LoggerMiddleware } from './common/logger/logger.middleware';
+import { CacheModule } from './common/cache/cache.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { LoggerMiddleware } from './common/logger/logger.middleware';
         logging: true,
       }),
     }),
+    CacheModule,
     UserModule,
     ArticleModule,
     AuthModule,

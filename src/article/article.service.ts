@@ -10,12 +10,14 @@ import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { QueryArticleDto } from './dto/query-article.dto';
 import { Article } from './entities/article.entity';
+import { RedisService } from '../common/cache/redis.service';
 
 @Injectable()
 export class ArticleService {
   constructor(
     @InjectRepository(Article)
     private articleRepository: Repository<Article>,
+    private redisService: RedisService,
   ) {}
 
   async create(
@@ -30,7 +32,11 @@ export class ArticleService {
         : new Date(),
     });
 
-    return this.articleRepository.save(article);
+    const savedArticle = await this.articleRepository.save(article);
+
+    await this.redisService.delPattern('article:list:*');
+
+    return savedArticle;
   }
 
   async list(queryDto: QueryArticleDto): Promise<{
@@ -40,6 +46,19 @@ export class ArticleService {
     limit: number;
   }> {
     const { page = 1, limit = 10, authorId, startDate, endDate } = queryDto;
+
+    const cacheKey = `article:list:${JSON.stringify(queryDto)}`;
+    const cached = await this.redisService.get<{
+      articles: any[];
+      total: number;
+      page: number;
+      limit: number;
+    }>(cacheKey);
+
+    if (cached) {
+      return cached;
+    }
+
     if (startDate) {
       const start = new Date(startDate);
       if (isNaN(start.getTime())) {
@@ -101,15 +120,26 @@ export class ArticleService {
       return article;
     });
 
-    return {
+    const result = {
       articles: articlesWithoutAuthorPassword,
       total,
       page,
       limit,
     };
+
+    await this.redisService.set(cacheKey, result);
+
+    return result;
   }
 
   async read(id: string): Promise<Article> {
+    const cacheKey = `article:${id}`;
+    const cached = await this.redisService.get<Article>(cacheKey);
+
+    if (cached) {
+      return cached;
+    }
+
     const article = await this.articleRepository.findOne({
       where: { id },
       relations: ['author'],
@@ -119,6 +149,8 @@ export class ArticleService {
       throw new NotFoundException('Article not found');
     }
 
+    let result: Article;
+
     if (article.author) {
       const authorWithoutPassword = {
         id: article.author.id,
@@ -126,10 +158,17 @@ export class ArticleService {
         createdAt: article.author.createdAt,
         articles: article.author.articles,
       };
-      article.author = authorWithoutPassword;
+      result = {
+        ...article,
+        author: authorWithoutPassword,
+      } as Article;
+    } else {
+      result = article;
     }
 
-    return article;
+    await this.redisService.set(cacheKey, result);
+
+    return result;
   }
 
   async update(
@@ -137,7 +176,11 @@ export class ArticleService {
     updateArticleDto: UpdateArticleDto,
     userId: string,
   ): Promise<Article> {
-    const article = await this.read(id);
+    const article = await this.articleRepository.findOne({ where: { id } });
+
+    if (!article) {
+      throw new NotFoundException('Article not found');
+    }
 
     if (article.authorId !== userId) {
       throw new ForbiddenException('You can only update your own articles');
@@ -156,16 +199,27 @@ export class ArticleService {
     }
 
     await this.articleRepository.update(id, updateData);
+
+    await this.redisService.del(`article:${id}`);
+    await this.redisService.delPattern('article:list:*');
+
     return this.read(id);
   }
 
   async delete(id: string, userId: string): Promise<void> {
-    const article = await this.read(id);
+    const article = await this.articleRepository.findOne({ where: { id } });
+
+    if (!article) {
+      throw new NotFoundException('Article not found');
+    }
 
     if (article.authorId !== userId) {
       throw new ForbiddenException('You can only delete your own articles');
     }
 
     await this.articleRepository.remove(article);
+
+    await this.redisService.del(`article:${id}`);
+    await this.redisService.delPattern('article:list:*');
   }
 }

@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
+import type { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 
 describe('AppController (e2e)', () => {
@@ -16,7 +17,8 @@ describe('AppController (e2e)', () => {
   });
 
   it('/ (GET)', async () => {
-    const server = app.getHttpServer() as Express.Application;
-    await request(server).get('/').expect(200);
+    const httpServer = app.getHttpServer() as App;
+    const response = await request(httpServer).get('/');
+    expect(response.status).toBe(200);
   });
 });
