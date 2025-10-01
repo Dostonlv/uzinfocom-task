@@ -9,22 +9,27 @@ import {
   Query,
   UsePipes,
   ValidationPipe,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import { ArticleService } from './article.service';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { QueryArticleDto } from './dto/query-article.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import type { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
 
 @Controller('article')
 export class ArticleController {
   constructor(private readonly articleService: ArticleService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() createArticleDto: CreateArticleDto) {
-    return this.articleService.create(
-      createArticleDto,
-      createArticleDto.authorId,
-    );
+  create(
+    @Body() createArticleDto: CreateArticleDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.articleService.create(createArticleDto, req.user.userId);
   }
 
   @Get()
@@ -38,13 +43,19 @@ export class ArticleController {
     return this.articleService.read(id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateArticleDto: UpdateArticleDto) {
-    return this.articleService.update(id, updateArticleDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateArticleDto: UpdateArticleDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.articleService.update(id, updateArticleDto, req.user.userId);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  delete(@Param('id') id: string) {
-    return this.articleService.delete(id);
+  delete(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    return this.articleService.delete(id, req.user.userId);
   }
 }

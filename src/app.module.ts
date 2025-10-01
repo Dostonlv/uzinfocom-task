@@ -7,6 +7,7 @@ import { User } from './user/entities/user.entity';
 import { Article } from './article/entities/article.entity';
 import { UserModule } from './user/user.module';
 import { ArticleModule } from './article/article.module';
+import { AuthModule } from './auth/auth.module';
 import { LoggerMiddleware } from './common/logger/logger.middleware';
 
 @Module({
@@ -32,6 +33,7 @@ import { LoggerMiddleware } from './common/logger/logger.middleware';
     }),
     UserModule,
     ArticleModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

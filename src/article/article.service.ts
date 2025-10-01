@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -108,10 +109,12 @@ export class ArticleService {
   async update(
     id: string,
     updateArticleDto: UpdateArticleDto,
+    userId: string,
   ): Promise<Article> {
     const article = await this.read(id);
-    if (!article) {
-      throw new NotFoundException('Article not found');
+
+    if (article.authorId !== userId) {
+      throw new ForbiddenException('You can only update your own articles');
     }
 
     const updateData: Partial<Article> = {};
@@ -130,11 +133,13 @@ export class ArticleService {
     return this.read(id);
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: string, userId: string): Promise<void> {
     const article = await this.read(id);
-    if (!article) {
-      throw new NotFoundException('Article not found');
+
+    if (article.authorId !== userId) {
+      throw new ForbiddenException('You can only delete your own articles');
     }
+
     await this.articleRepository.remove(article);
   }
 }

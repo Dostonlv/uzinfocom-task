@@ -27,6 +27,10 @@ export class UserService {
     return this.userRepository.save(user);
   }
 
+  async findByEmail(email: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { email } });
+  }
+
   async findAll(): Promise<User[]> {
     return this.userRepository.find({
       relations: ['articles'],
@@ -50,7 +54,7 @@ export class UserService {
       try {
         const hashedPassword = await bcrypt.hash(updateUserDto.password, 10);
         updateUserDto.password = hashedPassword;
-      } catch (error) {
+      } catch {
         throw new Error('Failed to hash password');
       }
     }
