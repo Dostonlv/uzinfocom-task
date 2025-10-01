@@ -8,7 +8,6 @@ import {
   Delete,
   UseGuards,
   Request,
-  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -16,10 +15,10 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiBody,
 } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
@@ -142,25 +141,42 @@ export class UserController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Patch(':id')
+  @Patch('email')
   @ApiBearerAuth()
-  @ApiParam({
-    name: 'id',
-    description: 'User ID (UUID)',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
   @ApiOperation({
-    summary: 'Update user by ID',
-    description:
-      'Updates a user profile. Users can only update their own profile.',
+    summary: 'Update user email',
+    description: 'Updates the current authenticated user email address.',
+  })
+  @ApiBody({
+    description: 'Email update data',
+    schema: {
+      type: 'object',
+      properties: {
+        email: {
+          type: 'string',
+          format: 'email',
+          example: 'newemail@example.com',
+          description: 'New email address',
+        },
+      },
+      required: ['email'],
+    },
+    examples: {
+      'update-email': {
+        summary: 'Update email',
+        value: {
+          email: 'newemail@example.com',
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 200,
-    description: 'User successfully updated',
+    description: 'Email successfully updated',
     type: UserResponseDto,
     example: {
       id: '123e4567-e89b-12d3-a456-426614174000',
-      email: 'updated@example.com',
+      email: 'newemail@example.com',
       createdAt: '2024-01-15T10:30:00.000Z',
       articles: [],
     },
@@ -183,33 +199,77 @@ export class UserController {
       error: 'Unauthorized',
     },
   })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - can only update own profile',
-    example: {
-      statusCode: 403,
-      message: 'You can only update your own profile',
-      error: 'Forbidden',
-    },
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'User not found',
-    example: {
-      statusCode: 404,
-      message: 'User with id 123e4567-e89b-12d3-a456-426614174000 not found',
-      error: 'Not Found',
-    },
-  })
-  update(
-    @Param('id') id: string,
-    @Body() updateUserDto: UpdateUserDto,
+  updateEmail(
+    @Body() updateUserDto: { email: string },
     @Request() req: AuthenticatedRequest,
   ) {
-    if (req.user.userId !== id) {
-      throw new ForbiddenException('You can only update your own profile');
-    }
-    return this.userService.update(id, updateUserDto);
+    return this.userService.update(req.user.userId, updateUserDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('password')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Update user password',
+    description: 'Updates the current authenticated user password.',
+  })
+  @ApiBody({
+    description: 'Password update data',
+    schema: {
+      type: 'object',
+      properties: {
+        password: {
+          type: 'string',
+          minLength: 6,
+          example: 'newpassword123',
+          description: 'New password',
+        },
+      },
+      required: ['password'],
+    },
+    examples: {
+      'update-password': {
+        summary: 'Update password',
+        value: {
+          password: 'newpassword123',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Password successfully updated',
+    type: UserResponseDto,
+    example: {
+      id: '123e4567-e89b-12d3-a456-426614174000',
+      email: 'user@example.com',
+      createdAt: '2024-01-15T10:30:00.000Z',
+      articles: [],
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - validation error',
+    example: {
+      statusCode: 400,
+      message: ['Password must be at least 6 characters long'],
+      error: 'Bad Request',
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - JWT token required',
+    example: {
+      statusCode: 401,
+      message: 'Unauthorized',
+      error: 'Unauthorized',
+    },
+  })
+  updatePassword(
+    @Body() updateUserDto: { password: string },
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.userService.update(req.user.userId, updateUserDto);
   }
 
   @UseGuards(JwtAuthGuard)

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ArticleResponseDto } from '../../article/dto/article-response.dto';
+import { ArticleWithoutAuthorDto } from './article-without-author.dto';
 
 export class UserResponseDto {
   @ApiProperty({
@@ -21,9 +21,9 @@ export class UserResponseDto {
   createdAt: Date;
 
   @ApiProperty({
-    description: 'User articles',
-    type: [ArticleResponseDto],
+    description: 'User articles (without author details)',
+    type: [ArticleWithoutAuthorDto],
     required: false,
   })
-  articles?: ArticleResponseDto[];
+  articles?: ArticleWithoutAuthorDto[];
 }

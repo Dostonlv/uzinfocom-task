@@ -34,7 +34,7 @@ export class ArticleService {
   }
 
   async list(queryDto: QueryArticleDto): Promise<{
-    articles: Article[];
+    articles: any[];
     total: number;
     page: number;
     limit: number;
@@ -85,8 +85,24 @@ export class ArticleService {
 
     const [articles, total] = await queryBuilder.getManyAndCount();
 
+    const articlesWithoutAuthorPassword = articles.map((article) => {
+      if (article.author) {
+        const authorWithoutPassword = {
+          id: article.author.id,
+          email: article.author.email,
+          createdAt: article.author.createdAt,
+          articles: article.author.articles,
+        };
+        return {
+          ...article,
+          author: authorWithoutPassword,
+        };
+      }
+      return article;
+    });
+
     return {
-      articles,
+      articles: articlesWithoutAuthorPassword,
       total,
       page,
       limit,
@@ -101,6 +117,16 @@ export class ArticleService {
 
     if (!article) {
       throw new NotFoundException('Article not found');
+    }
+
+    if (article.author) {
+      const authorWithoutPassword = {
+        id: article.author.id,
+        email: article.author.email,
+        createdAt: article.author.createdAt,
+        articles: article.author.articles,
+      };
+      article.author = authorWithoutPassword;
     }
 
     return article;

@@ -44,13 +44,22 @@ export class AuthService {
     };
   }
 
-  async validateUser(email: string, password: string): Promise<any> {
+  async validateUser(
+    email: string,
+    password: string,
+  ): Promise<Omit<
+    { id: string; email: string; createdAt: Date },
+    'password'
+  > | null> {
     const user = await this.userService.findByEmail(email);
     if (user) {
       const isValid = await bcrypt.compare(password, user.password);
       if (isValid) {
-        const { password: _, ...result } = user;
-        return result;
+        return {
+          id: user.id,
+          email: user.email,
+          createdAt: user.createdAt,
+        };
       }
     }
     return null;

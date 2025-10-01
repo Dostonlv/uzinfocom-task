@@ -32,8 +32,23 @@ export class UserService {
   }
 
   async findAll(): Promise<User[]> {
-    return this.userRepository.find({
+    const users = await this.userRepository.find({
       relations: ['articles'],
+    });
+    return users.map((user) => {
+      const userWithoutPassword = {
+        id: user.id,
+        email: user.email,
+        createdAt: user.createdAt,
+        articles: user.articles?.map((article) => ({
+          id: article.id,
+          title: article.title,
+          description: article.description,
+          publishedAt: article.publishedAt,
+          authorId: article.authorId,
+        })),
+      };
+      return userWithoutPassword as User;
     });
   }
 
@@ -45,11 +60,30 @@ export class UserService {
     if (!user) {
       throw new NotFoundException(`User with id ${id} not found`);
     }
-    return user;
+    const userWithoutPassword = {
+      id: user.id,
+      email: user.email,
+      createdAt: user.createdAt,
+      articles: user.articles?.map((article) => ({
+        id: article.id,
+        title: article.title,
+        description: article.description,
+        publishedAt: article.publishedAt,
+        authorId: article.authorId,
+      })),
+    };
+    return userWithoutPassword as User;
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
-    const user = await this.findOne(id);
+    const user = await this.userRepository.findOne({
+      where: { id },
+      relations: ['articles'],
+    });
+    if (!user) {
+      throw new NotFoundException(`User with id ${id} not found`);
+    }
+
     if (updateUserDto.password) {
       try {
         const hashedPassword = await bcrypt.hash(updateUserDto.password, 10);
@@ -60,7 +94,20 @@ export class UserService {
     }
 
     Object.assign(user, updateUserDto);
-    return this.userRepository.save(user);
+    const savedUser = await this.userRepository.save(user);
+    const userWithoutPassword = {
+      id: savedUser.id,
+      email: savedUser.email,
+      createdAt: savedUser.createdAt,
+      articles: savedUser.articles?.map((article) => ({
+        id: article.id,
+        title: article.title,
+        description: article.description,
+        publishedAt: article.publishedAt,
+        authorId: article.authorId,
+      })),
+    };
+    return userWithoutPassword as User;
   }
 
   async remove(id: string): Promise<void> {
