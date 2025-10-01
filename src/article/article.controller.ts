@@ -1,7 +1,19 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
 import { ArticleService } from './article.service';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
+import { QueryArticleDto } from './dto/query-article.dto';
 
 @Controller('article')
 export class ArticleController {
@@ -9,26 +21,30 @@ export class ArticleController {
 
   @Post()
   create(@Body() createArticleDto: CreateArticleDto) {
-    return this.articleService.create(createArticleDto);
+    return this.articleService.create(
+      createArticleDto,
+      createArticleDto.authorId,
+    );
   }
 
   @Get()
-  findAll() {
-    return this.articleService.findAll();
+  @UsePipes(new ValidationPipe({ transform: true }))
+  list(@Query() queryDto: QueryArticleDto) {
+    return this.articleService.list(queryDto);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.articleService.findOne(+id);
+  read(@Param('id') id: string) {
+    return this.articleService.read(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateArticleDto: UpdateArticleDto) {
-    return this.articleService.update(+id, updateArticleDto);
+    return this.articleService.update(id, updateArticleDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.articleService.remove(+id);
+  delete(@Param('id') id: string) {
+    return this.articleService.delete(id);
   }
 }

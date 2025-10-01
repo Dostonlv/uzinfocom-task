@@ -10,8 +10,8 @@ import { User } from '../../user/entities/user.entity';
 
 @Entity('articles')
 export class Article {
-  @PrimaryGeneratedColumn()
-  id!: number;
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
 
   @Column()
   title!: string;
@@ -23,7 +23,7 @@ export class Article {
   publishedAt!: Date;
 
   @Column()
-  authorId!: number;
+  authorId!: string;
 
   @ManyToOne(() => User, (user) => user.articles, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'authorId' })
