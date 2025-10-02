@@ -28,5 +28,4 @@ export class Article {
   @ManyToOne(() => User, (user) => user.articles, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'authorId' })
   author!: User;
-  article: { id: string; email: string; createdAt: Date; articles: Article[] };
 }
