@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { randomUUID } from 'crypto';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import {
   NotFoundException,
@@ -28,6 +29,15 @@ describe('ArticleService', () => {
     delPattern: jest.fn(),
   };
 
+  const mockQueryBuilder = {
+    leftJoinAndSelect: jest.fn().mockReturnThis(),
+    skip: jest.fn().mockReturnThis(),
+    take: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    getManyAndCount: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -45,6 +55,7 @@ describe('ArticleService', () => {
 
     service = module.get<ArticleService>(ArticleService);
 
+    mockRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
     jest.clearAllMocks();
   });
 
@@ -59,9 +70,9 @@ describe('ArticleService', () => {
         description: 'Test Description',
         publishedAt: '2025-10-01T00:00:00Z',
       };
-      const userId = 'user-123';
+      const userId = randomUUID();
       const mockArticle = {
-        id: 'article-123',
+        id: randomUUID(),
         ...createDto,
         authorId: userId,
         publishedAt: new Date(createDto.publishedAt),
@@ -88,7 +99,7 @@ describe('ArticleService', () => {
 
   describe('read', () => {
     it('should return cached article if exists', async () => {
-      const articleId = 'article-123';
+      const articleId = randomUUID();
       const cachedArticle = {
         id: articleId,
         title: 'Cached Article',
@@ -104,15 +115,15 @@ describe('ArticleService', () => {
     });
 
     it('should fetch from database and cache if not cached', async () => {
-      const articleId = 'article-123';
+      const articleId = randomUUID();
       const dbArticle = {
         id: articleId,
         title: 'Test Article',
         description: 'Test Description',
         publishedAt: new Date(),
-        authorId: 'user-123',
+        authorId: randomUUID(),
         author: {
-          id: 'user-123',
+          id: randomUUID(),
           email: 'test@example.com',
           password: 'hashed',
           createdAt: new Date(),
@@ -139,7 +150,7 @@ describe('ArticleService', () => {
       mockRedisService.get.mockResolvedValue(null);
       mockRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.read('non-existent')).rejects.toThrow(
+      await expect(service.read(randomUUID())).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -147,8 +158,8 @@ describe('ArticleService', () => {
 
   describe('update', () => {
     it('should update article and invalidate cache', async () => {
-      const articleId = 'article-123';
-      const userId = 'user-123';
+      const articleId = randomUUID();
+      const userId = randomUUID();
       const updateDto = { title: 'Updated Title' };
       const existingArticle = {
         id: articleId,
@@ -188,28 +199,28 @@ describe('ArticleService', () => {
       mockRepository.findOne.mockResolvedValue(null);
 
       await expect(
-        service.update('non-existent', {}, 'user-123'),
+        service.update(randomUUID(), {}, randomUUID()),
       ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ForbiddenException if user is not the author', async () => {
       const article = {
-        id: 'article-123',
-        authorId: 'author-123',
+        id: randomUUID(),
+        authorId: randomUUID(),
       } as Article;
 
       mockRepository.findOne.mockResolvedValue(article);
 
       await expect(
-        service.update('article-123', {}, 'different-user'),
+        service.update(randomUUID(), {}, randomUUID()),
       ).rejects.toThrow(ForbiddenException);
     });
   });
 
   describe('delete', () => {
     it('should delete article and invalidate cache', async () => {
-      const articleId = 'article-123';
-      const userId = 'user-123';
+      const articleId = randomUUID();
+      const userId = randomUUID();
       const article = {
         id: articleId,
         authorId: userId,
@@ -232,22 +243,22 @@ describe('ArticleService', () => {
     it('should throw NotFoundException if article not found', async () => {
       mockRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.delete('non-existent', 'user-123')).rejects.toThrow(
+      await expect(service.delete(randomUUID(), randomUUID())).rejects.toThrow(
         NotFoundException,
       );
     });
 
     it('should throw ForbiddenException if user is not the author', async () => {
       const article = {
-        id: 'article-123',
-        authorId: 'author-123',
+        id: randomUUID(),
+        authorId: randomUUID(),
       } as Article;
 
       mockRepository.findOne.mockResolvedValue(article);
 
-      await expect(
-        service.delete('article-123', 'different-user'),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.delete(randomUUID(), randomUUID())).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -274,6 +285,288 @@ describe('ArticleService', () => {
 
       await expect(service.list({ startDate: 'invalid-date' })).rejects.toThrow(
         BadRequestException,
+      );
+    });
+
+    it('should filter by authorId', async () => {
+      const queryDto = { authorId: randomUUID() };
+      const mockArticles = [
+        {
+          id: randomUUID(),
+          title: 'Test Article',
+          authorId: queryDto.authorId,
+          author: { id: queryDto.authorId, email: 'test@test.com' },
+        },
+      ];
+
+      mockRedisService.get.mockResolvedValue(null);
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([mockArticles, 1]);
+
+      await service.list(queryDto);
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'article.authorId = :authorId',
+        { authorId: queryDto.authorId },
+      );
+    });
+
+    it('should filter by date range', async () => {
+      const queryDto = {
+        startDate: '2024-01-01',
+        endDate: '2024-12-31',
+      };
+
+      mockRedisService.get.mockResolvedValue(null);
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+
+      await service.list(queryDto);
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'article.publishedAt BETWEEN :startDate AND :endDate',
+        {
+          startDate: new Date('2024-01-01'),
+          endDate: new Date('2024-12-31'),
+        },
+      );
+    });
+
+    it('should filter by startDate only', async () => {
+      const queryDto = { startDate: '2024-01-01' };
+
+      mockRedisService.get.mockResolvedValue(null);
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+
+      await service.list(queryDto);
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'article.publishedAt >= :startDate',
+        { startDate: new Date('2024-01-01') },
+      );
+    });
+
+    it('should filter by endDate only', async () => {
+      const queryDto = { endDate: '2024-12-31' };
+
+      mockRedisService.get.mockResolvedValue(null);
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+
+      await service.list(queryDto);
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'article.publishedAt <= :endDate',
+        { endDate: new Date('2024-12-31') },
+      );
+    });
+
+    it('should apply pagination with custom page and limit', async () => {
+      const queryDto = { page: 2, limit: 5 };
+
+      mockRedisService.get.mockResolvedValue(null);
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+
+      await service.list(queryDto);
+
+      expect(mockQueryBuilder.skip).toHaveBeenCalledWith(5);
+      expect(mockQueryBuilder.take).toHaveBeenCalledWith(5);
+    });
+
+    it('should use default pagination values', async () => {
+      mockRedisService.get.mockResolvedValue(null);
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+
+      await service.list({});
+
+      expect(mockQueryBuilder.skip).toHaveBeenCalledWith(0);
+      expect(mockQueryBuilder.take).toHaveBeenCalledWith(10);
+    });
+
+    it('should remove password from author data', async () => {
+      const mockArticle = {
+        id: randomUUID(),
+        title: 'Test Article',
+        author: {
+          id: randomUUID(),
+          email: 'test@test.com',
+          password: 'should-be-removed',
+          createdAt: new Date(),
+          articles: [],
+        },
+      };
+
+      mockRedisService.get.mockResolvedValue(null);
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[mockArticle], 1]);
+
+      const result = await service.list({});
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(result.articles[0].author).not.toHaveProperty('password');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect((result.articles[0].author as { email: string }).email).toBe(
+        'test@test.com',
+      );
+    });
+
+    it('should cache the result after database query', async () => {
+      const queryDto = { page: 1, limit: 10 };
+      const expectedCacheKey = `article:list:${JSON.stringify(queryDto)}`;
+
+      mockRedisService.get.mockResolvedValue(null);
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+
+      await service.list(queryDto);
+
+      expect(mockRedisService.set).toHaveBeenCalledWith(expectedCacheKey, {
+        articles: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+      });
+    });
+
+    it('should throw BadRequestException for invalid endDate format', async () => {
+      mockRedisService.get.mockResolvedValue(null);
+
+      await expect(service.list({ endDate: 'invalid-date' })).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('cache invalidation', () => {
+    it('should invalidate list cache when creating article', async () => {
+      const createDto = {
+        title: 'Test Article',
+        description: 'Test Description',
+        publishedAt: '2024-01-01T00:00:00Z',
+      };
+      const userId = randomUUID();
+
+      mockRepository.create.mockReturnValue(createDto);
+      mockRepository.save.mockResolvedValue({ ...createDto, id: randomUUID() });
+
+      await service.create(createDto, userId);
+
+      expect(mockRedisService.delPattern).toHaveBeenCalledWith(
+        'article:list:*',
+      );
+    });
+
+    it('should invalidate both individual and list cache when updating article', async () => {
+      const articleId = randomUUID();
+      const userId = randomUUID();
+      const updateDto = { title: 'Updated Title' };
+
+      const mockArticle = {
+        id: articleId,
+        authorId: userId,
+        title: 'Original Title',
+      };
+
+      mockRepository.findOne.mockResolvedValue(mockArticle);
+      mockRepository.update.mockResolvedValue(undefined);
+
+      jest.spyOn(service, 'read').mockResolvedValue(mockArticle as Article);
+
+      await service.update(articleId, updateDto, userId);
+
+      expect(mockRedisService.del).toHaveBeenCalledWith(`article:${articleId}`);
+      expect(mockRedisService.delPattern).toHaveBeenCalledWith(
+        'article:list:*',
+      );
+    });
+
+    it('should invalidate both individual and list cache when deleting article', async () => {
+      const articleId = randomUUID();
+      const userId = randomUUID();
+
+      const mockArticle = {
+        id: articleId,
+        authorId: userId,
+        title: 'Test Article',
+      };
+
+      mockRepository.findOne.mockResolvedValue(mockArticle);
+      mockRepository.remove.mockResolvedValue(undefined);
+
+      await service.delete(articleId, userId);
+
+      expect(mockRedisService.del).toHaveBeenCalledWith(`article:${articleId}`);
+      expect(mockRedisService.delPattern).toHaveBeenCalledWith(
+        'article:list:*',
+      );
+    });
+  });
+
+  describe('read with caching', () => {
+    it('should return cached article if exists', async () => {
+      const articleId = randomUUID();
+      const cachedArticle = {
+        id: articleId,
+        title: 'Cached Article',
+        author: { id: randomUUID(), email: 'test@test.com' },
+      };
+
+      mockRedisService.get.mockResolvedValue(cachedArticle);
+
+      const result = await service.read(articleId);
+
+      expect(result).toEqual(cachedArticle);
+      expect(mockRepository.findOne).not.toHaveBeenCalled();
+    });
+
+    it('should cache article after database fetch', async () => {
+      const articleId = randomUUID();
+      const mockArticle = {
+        id: articleId,
+        title: 'Test Article',
+        author: {
+          id: randomUUID(),
+          email: 'test@test.com',
+          password: 'should-be-removed',
+          createdAt: new Date(),
+          articles: [],
+        },
+      };
+
+      mockRedisService.get.mockResolvedValue(null);
+      mockRepository.findOne.mockResolvedValue(mockArticle);
+
+      await service.read(articleId);
+
+      expect(mockRedisService.set).toHaveBeenCalledWith(
+        `article:${articleId}`,
+
+        expect.objectContaining({
+          id: articleId,
+          title: 'Test Article',
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          author: expect.not.objectContaining({
+            password: expect.anything(),
+          } as Record<string, unknown>),
+        }) as unknown,
+      );
+    });
+
+    it('should handle article without author', async () => {
+      const articleId = randomUUID();
+      const mockArticle = {
+        id: articleId,
+        title: 'Test Article',
+        description: 'Test Description',
+        publishedAt: new Date(),
+        authorId: randomUUID(),
+        author: null,
+      };
+
+      mockRedisService.get.mockResolvedValue(null);
+      mockRepository.findOne.mockResolvedValue(mockArticle);
+
+      const result = await service.read(articleId);
+
+      expect(result).toEqual(mockArticle as unknown as Article);
+      expect(mockRedisService.set).toHaveBeenCalledWith(
+        `article:${articleId}`,
+        mockArticle,
       );
     });
   });

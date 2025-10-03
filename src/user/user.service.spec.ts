@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { randomUUID } from 'crypto';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
@@ -46,7 +47,7 @@ describe('UserService', () => {
       };
       const hashedPassword = 'hashed-password';
       const mockUser = {
-        id: 'user-123',
+        id: randomUUID(),
         email: createUserDto.email,
         password: hashedPassword,
         createdAt: new Date(),
@@ -72,7 +73,7 @@ describe('UserService', () => {
     it('should return user if found', async () => {
       const email = 'test@example.com';
       const mockUser = {
-        id: 'user-123',
+        id: randomUUID(),
         email,
         password: 'hashed',
         createdAt: new Date(),
@@ -99,18 +100,18 @@ describe('UserService', () => {
     it('should return all users without passwords', async () => {
       const mockUsers = [
         {
-          id: 'user-1',
+          id: randomUUID(),
           email: 'user1@example.com',
           password: 'hashed1',
           createdAt: new Date(),
           articles: [
             {
-              id: 'article-1',
+              id: randomUUID(),
               title: 'Article 1',
               description: 'Description',
               publishedAt: new Date(),
-              authorId: 'user-1',
-              author: { id: 'user-1', email: 'user1@example.com' },
+              authorId: randomUUID(),
+              author: { id: randomUUID(), email: 'user1@example.com' },
             },
           ],
         },
@@ -126,11 +127,39 @@ describe('UserService', () => {
       expect(result[0]).not.toHaveProperty('password');
       expect(result[0].articles?.[0]).not.toHaveProperty('author');
     });
+
+    it('should handle users without articles', async () => {
+      const mockUsers = [
+        {
+          id: randomUUID(),
+          email: 'user1@example.com',
+          password: 'hashed1',
+          createdAt: new Date(),
+          articles: null,
+        },
+        {
+          id: randomUUID(),
+          email: 'user2@example.com',
+          password: 'hashed2',
+          createdAt: new Date(),
+          articles: [],
+        },
+      ] as User[];
+
+      mockRepository.find.mockResolvedValue(mockUsers);
+
+      const result = await service.findAll();
+
+      expect(result[0].articles).toBeUndefined();
+      expect(result[1].articles).toEqual([]);
+      expect(result[0]).not.toHaveProperty('password');
+      expect(result[1]).not.toHaveProperty('password');
+    });
   });
 
   describe('findOne', () => {
     it('should return user without password', async () => {
-      const userId = 'user-123';
+      const userId = randomUUID();
       const mockUser = {
         id: userId,
         email: 'test@example.com',
@@ -153,15 +182,33 @@ describe('UserService', () => {
     it('should throw NotFoundException if user not found', async () => {
       mockRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.findOne('non-existent')).rejects.toThrow(
+      await expect(service.findOne(randomUUID())).rejects.toThrow(
         NotFoundException,
       );
+    });
+
+    it('should handle user with null articles in findOne', async () => {
+      const userId = randomUUID();
+      const mockUser = {
+        id: userId,
+        email: 'test@example.com',
+        password: 'hashed',
+        createdAt: new Date(),
+        articles: undefined,
+      } as unknown as User;
+
+      mockRepository.findOne.mockResolvedValue(mockUser);
+
+      const result = await service.findOne(userId);
+
+      expect(result.articles).toBeUndefined();
+      expect(result).not.toHaveProperty('password');
     });
   });
 
   describe('update', () => {
     it('should update user and hash new password', async () => {
-      const userId = 'user-123';
+      const userId = randomUUID();
       const originalPassword = 'newpassword';
       const updateDto = { password: originalPassword };
       const hashedPassword = 'new-hashed';
@@ -188,7 +235,7 @@ describe('UserService', () => {
     });
 
     it('should update user without changing password', async () => {
-      const userId = 'user-123';
+      const userId = randomUUID();
       const updateDto = { email: 'newemail@example.com' };
       const mockUser = {
         id: userId,
@@ -212,7 +259,7 @@ describe('UserService', () => {
     it('should throw NotFoundException if user not found', async () => {
       mockRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.update('non-existent', {})).rejects.toThrow(
+      await expect(service.update(randomUUID(), {})).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -220,7 +267,7 @@ describe('UserService', () => {
 
   describe('remove', () => {
     it('should delete user', async () => {
-      const userId = 'user-123';
+      const userId = randomUUID();
       mockRepository.delete.mockResolvedValue({ affected: 1 });
 
       await service.remove(userId);
@@ -231,7 +278,7 @@ describe('UserService', () => {
     it('should throw NotFoundException if user not found', async () => {
       mockRepository.delete.mockResolvedValue({ affected: 0 });
 
-      await expect(service.remove('non-existent')).rejects.toThrow(
+      await expect(service.remove(randomUUID())).rejects.toThrow(
         NotFoundException,
       );
     });

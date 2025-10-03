@@ -5,7 +5,7 @@ import Redis from 'ioredis';
 @Injectable()
 export class RedisService implements OnModuleDestroy {
   private readonly client: Redis;
-  private readonly TTL = 30 * 24 * 60 * 60; // 30 kun (sekundlarda)
+  private readonly TTL = 30 * 24 * 60 * 60;
 
   constructor(private configService: ConfigService) {
     this.client = new Redis({
@@ -19,7 +19,11 @@ export class RedisService implements OnModuleDestroy {
     if (!value) {
       return null;
     }
-    return JSON.parse(value) as T;
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      return null;
+    }
   }
 
   async set(key: string, value: unknown): Promise<void> {
