@@ -71,7 +71,7 @@ jobs:
         run: pnpm run lint
 
       - name: Check formatting
-        run: pnpm run format -- --check
+        run: pnpm run format:check
 
       - name: Run tests
         run: pnpm run test
