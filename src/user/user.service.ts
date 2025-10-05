@@ -88,7 +88,8 @@ export class UserService {
       try {
         const hashedPassword = await bcrypt.hash(updateUserDto.password, 10);
         updateUserDto.password = hashedPassword;
-      } catch {
+      } catch (error) {
+        console.error('Failed to hash password: ', error);
         throw new Error('Failed to hash password');
       }
     }
