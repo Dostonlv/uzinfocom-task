@@ -257,7 +257,7 @@ jobs:
             APP_PORT=$(grep APP_EXTERNAL_PORT .env | cut -d '=' -f2 || echo "58080")
 
             while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-              if curl -f -s -o /dev/null http://localhost:$APP_PORT/api; then
+              if curl -f -s -o /dev/null http://localhost:$APP_PORT/; then
                 echo "✅ Application is healthy!"
                 break
               fi
