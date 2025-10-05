@@ -5,7 +5,7 @@ import Redis from 'ioredis';
 @Injectable()
 export class RedisService implements OnModuleDestroy {
   private readonly client: Redis;
-  private readonly TTL = 30 * 24 * 60 * 60;
+  private readonly TTL = 30 * 24 * 60 * 60; // 30 days
 
   constructor(private configService: ConfigService) {
     this.client = new Redis({
