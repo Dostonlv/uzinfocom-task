@@ -3,6 +3,10 @@ import { config } from 'dotenv';
 
 config();
 
+/*
+  THIS IS FOR DEVELOPMENT ENVIRONMENT
+  for typeorm config cli
+*/
 export default new DataSource({
   type: 'postgres',
   host: process.env.DATABASE_HOST || 'localhost',

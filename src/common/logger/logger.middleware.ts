@@ -1,6 +1,11 @@
 import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 
+/*
+  i not just not wanted to use ConsoleLogger and 
+  i create my own logger middleware
+  and implement it
+*/
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
   private logger = new Logger('HTTP');

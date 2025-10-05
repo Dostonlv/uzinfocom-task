@@ -30,14 +30,21 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
 
+/*
+  i am not following to the article body and added author field because
+  i want to get author details from user api and get request for every article
+  and fronted get author data from user api always and by defauld author data has for each article
+*/
+
 @ApiTags('Articles')
 @Controller('article')
 export class ArticleController {
   constructor(private readonly articleService: ArticleService) {}
-
+  // jwt auth
   @UseGuards(JwtAuthGuard)
   @Post()
   @ApiBearerAuth()
+  // Swagger example
   @ApiOperation({
     summary: 'Create a new article',
     description: 'Creates a new article. Requires authentication.',
@@ -86,6 +93,7 @@ export class ArticleController {
     return this.articleService.create(createArticleDto, req.user.userId);
   }
 
+  // get list articles
   @Get()
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({
@@ -120,6 +128,7 @@ export class ArticleController {
     return this.articleService.list(queryDto);
   }
 
+  // get article by id
   @Get(':id')
   @ApiParam({
     name: 'id',
@@ -159,6 +168,7 @@ export class ArticleController {
     return this.articleService.read(id);
   }
 
+  // update article
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
   @ApiBearerAuth()
@@ -232,6 +242,7 @@ export class ArticleController {
     return this.articleService.update(id, updateArticleDto, req.user.userId);
   }
 
+  // delete article
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   @ApiBearerAuth()

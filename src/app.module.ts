@@ -17,6 +17,12 @@ import { CacheModule } from './common/cache/cache.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    /*
+      this is for typeorm config
+      for app use data and i didnt use index for database
+      becase index slowly for write data and if data getting bigger then i use index
+      if i not user or datas neednt to "scale"
+    */
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
