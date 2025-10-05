@@ -242,7 +242,7 @@ jobs:
 
             # Run database migrations
             echo "📊 Running database migrations..."
-            docker compose -f docker-compose.prod.yml exec -T app pnpm run migration:run || echo "⚠️  No migrations to run or migration failed"
+            docker compose -f docker-compose.prod.yml exec -T app pnpm run migration:run:prod || echo "⚠️  No migrations to run or migration failed"
 
             # Wait for app to fully start
             echo "⏳ Waiting for application to start..."
