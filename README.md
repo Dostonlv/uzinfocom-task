@@ -39,6 +39,10 @@ docker build -t uzinfocom-task .
 docker compose -f docker-compose.prod.yml up -d
 ```
 
+## Run all tests
+```bash
+pnpm run test
+```
 ## API Access
 
 - **API:** http://localhost:3000
