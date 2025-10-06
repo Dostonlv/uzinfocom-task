@@ -13,7 +13,7 @@ async function bootstrap() {
       basicAuth({
         users: {
           [process.env.SWAGGER_USER || 'admin']:
-            process.env.SWAGGER_PASS || 'dh38dh32hd89233whkjsw\\sq',
+            process.env.SWAGGER_PASSWORD || 'dh38dh32hd89233whkjsw\\sq',
         },
         challenge: true,
       }),
