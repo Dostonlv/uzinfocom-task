@@ -9,6 +9,7 @@ async function bootstrap() {
   if (process.env.NODE_ENV === 'production') {
     app.use(
       ['/docs', '/docs-json'],
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       basicAuth({
         users: {
           [process.env.SWAGGER_USER || 'admin']:
