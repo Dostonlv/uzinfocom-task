@@ -44,6 +44,9 @@ docker compose -f docker-compose.prod.yml up -d
 - **API:** http://localhost:3000
 - **Swagger:** http://localhost:3000/docs
 
+## API Access for production
+- **API:** https://article.deltateam.uz/
+- **Swagger:** https://article.deltateam.uz/docs
 ## Environment Variables
 
 ```env
