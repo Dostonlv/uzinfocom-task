@@ -73,7 +73,7 @@ JWT_EXPIRES_IN=3600s
 if you want to use production environment, you need to set NODE_ENV=production
 and set swagger credentials in .env file
 ```env
-SWAGGER_USER=admin
+SWAGGER_USERNAME=admin
 SWAGGER_PASS=dh38dh32hd89233whkae
 ```
 

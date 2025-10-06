@@ -6,20 +6,6 @@ import basicAuth from 'express-basic-auth';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  if (process.env.NODE_ENV === 'production') {
-    app.use(
-      ['/docs', '/docs-json'],
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-      basicAuth({
-        users: {
-          [process.env.SWAGGER_USER || 'admin']:
-            process.env.SWAGGER_PASSWORD || 'dh38dh32hd89233whkjsw\\sq',
-        },
-        challenge: true,
-      }),
-    );
-  }
-
   const configBuilder = new DocumentBuilder()
     .setTitle('Article Management API')
     .setDescription('API for managing articles with authentication')
@@ -28,6 +14,20 @@ async function bootstrap() {
 
   const config = configBuilder.build();
   const document = SwaggerModule.createDocument(app, config);
+  if (process.env.NODE_ENV === 'production') {
+    app.use(
+      ['/docs', '/docs-json'],
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      basicAuth({
+        challenge: true,
+        users: {
+          [process.env.SWAGGER_USERNAME || 'admin']:
+            process.env.SWAGGER_PASSWORD || 'dh38dh32hd89233whkjsw\\sq',
+        },
+      }),
+    );
+  }
+
   SwaggerModule.setup('docs', app, document);
 
   await app.listen(process.env.PORT ?? 3000);

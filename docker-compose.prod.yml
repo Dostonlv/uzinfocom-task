@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   app:
     image: ${DOCKER_USERNAME}/uzinfocom-task:latest
@@ -18,6 +16,8 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
       NODE_ENV: production
+      SWAGGER_USERNAME: ${SWAGGER_USERNAME}
+      SWAGGER_PASSWORD: ${SWAGGER_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy
